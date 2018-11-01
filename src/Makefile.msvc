@@ -1,0 +1,41 @@
+TARGET          ?= opus.pyd
+CL              ?= cl.exe
+PYTHON_DIR      ?= C:\\Python27
+PYTHON_INCLUDE  ?= /I$(PYTHON_DIR)\\Include
+PYTHON_LD       ?= $(PYTHON_DIR)\\libs\\python27.lib
+
+EXT_SOURCE      ?= pyopus.c
+OPUS_DIR        := ../opus
+OPUS_SRC_DIR    := $(OPUS_DIR)/src
+OPUS_WIN_DIR    := ..\\opus
+OPUS_WIN_SRC    := $(OPUS_WIN_DIR)\\src
+OPUS_SOURCES    := $(wildcard $(OPUS_SRC_DIR)/*.c)
+CELT_SOURCES    := $(wildcard $(OPUS_DIR)/celt/*.c) \
+		   $(wildcard $(OPUS_DIR)/celt/x86/*.c)
+SILK_SOURCES	:= $(wildcard $(OPUS_DIR)/silk/*.c) \
+		   $(wildcard $(OPUS_DIR)/silk/x86/*.c) \
+		   $(wildcard $(OPUS_DIR)/silk/fixed/*.c) \
+		   $(wildcard $(OPUS_DIR)/silk/fixed/x86/*.c)
+
+SOURCES_ALL     := $(CELT_SOURCES) $(SILK_SOURCES) \
+                   $(OPUS_SOURCES) $(EXT_SOURCE)
+SOURCES         := $(filter-out %_demo.c,$(SOURCES_ALL))
+OPUS_INCLUDES   := /I$(OPUS_WIN_DIR)\\win32 /I$(OPUS_WIN_DIR)\\include \
+ 		   /I$(OPUS_WIN_DIR)\\silk /I$(OPUS_WIN_DIR)\\silk\\fixed \
+ 		   /I$(OPUS_WIN_DIR)\\celt \
+                   /I$(OPUS_WIN_DIR)
+OPUS_DEFINES    := /DHAVE_CONFIG_H /DWIN32 /D_CRT_SECURE_NO_WARNINGS /DFIXED_POINT
+
+LIBS            := advapi32.lib
+
+all: $(TARGET)
+
+$(OPUS_DIR)/win32/version.h:
+	echo "#define version \"git describe --tags --match 'v*' --dirty\"" >$@
+
+$(TARGET): $(OBJECTS) | ../opus/win32/version.h
+	$(CL) /D_WIN32 $(CFLAGS) $(PYTHON_INCLUDE) $(OPUS_INCLUDES) \
+		$(OPUS_DEFINES) $(SOURCES) $(LIBS) $(PYTHON_LD) /Fe$@
+
+clean:
+	rm -f $(TARGET)

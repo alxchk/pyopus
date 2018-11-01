@@ -1,0 +1,8 @@
+opus/opus.so
+example/rec.pyc
+example/rec.pyo
+example/parec.pyc
+example/parec.pyo
+example/x.in.pcm
+example/x.opus
+example/x.out.pcm
