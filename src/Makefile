@@ -32,8 +32,8 @@ all: $(TARGET)
 		make
 
 $(TARGET): pyopus.c $(LIBOPUS)
-	$(CC) $(CFLAGS) $(CFLAGS_PYTHON) $(LDFLAGS) $(LDFLAGS_PYTHON) \
-		$(CFLAGS_OPUS) $(LDFLAGS_OPUS) \
-		-fPIC -o $@ $< -shared $(LIBOPUS)
+	$(CC) -fPIC -o $@ $< -shared $(CFLAGS) $(CFLAGS_PYTHON) $(LDFLAGS) \
+	$(LDFLAGS_PYTHON) $(CFLAGS_OPUS) $(LDFLAGS_OPUS) $(LIBOPUS)
+
 clean:
 	rm -f $(TARGET)
