@@ -1,5 +1,15 @@
 # -*- encoding: utf-8 -*-
 
+import sys
+
+if sys.version_info >= (3,0):
+    def as_bytes(x):
+        if x:
+            return x.encode('utf-8')
+else:
+    def as_bytes(x):
+        return x
+
 from ctypes import (
     Structure, c_uint32, c_uint8, c_int32,
     CDLL, c_char_p, byref, POINTER, c_void_p, c_size_t,
@@ -82,7 +92,7 @@ pa_simple_free.argtypes = [
 ]
 
 class PaRec(object):
-    def __init__(self, server=None, name="parec", stream_name="stream", dev=None,
+    def __init__(self, server=None, name=u'parec', stream_name=u'stream', dev=None,
                  fmt=PA_SAMPLE_S16LE, rate=24000, channels=2):
         self.dev = dev
         self.name = name
@@ -100,8 +110,12 @@ class PaRec(object):
 
         error = c_int32(0)
 
+        name = as_bytes(self.name)
+        stream_name = as_bytes(self.stream_name)
+        dev = as_bytes(self.dev)
+
         pa = pa_simple_new(
-            self.server, self.name, PA_STREAM_RECORD, self.dev, self.stream_name,
+            self.server, name, PA_STREAM_RECORD, dev, stream_name,
             byref(spec), None, None, byref(error))
 
         if not pa:

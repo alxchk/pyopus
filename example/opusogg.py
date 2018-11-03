@@ -6,6 +6,15 @@ __all__ = [
 
 # libogg required
 
+import sys
+
+if sys.version_info >= (3,0):
+    def as_bytes(x):
+        return x.encode('utf-8')
+else:
+    def as_bytes(x):
+        return x
+
 from struct import pack
 from ctypes import CDLL, Structure
 from ctypes import (
@@ -78,29 +87,29 @@ class OpusOggFile(object):
         self.closed = False
         self.tags = tags
 
-        self._tmp_page = OggPage()
         self._tmp_packet = OggPacket()
 
         self._write_header()
 
-    def _write_page(self):
+    def _write_page(self, page):
         ph = cast(
-            self._tmp_page.header,
-            POINTER(c_char*self._tmp_page.header_len))
+            page.header,
+            POINTER(c_char*page.header_len))
 
         self._fobj.write(ph.contents.raw)
 
         pb = cast(
-            self._tmp_page.body,
-            POINTER(c_char*self._tmp_page.body_len))
+            page.body,
+            POINTER(c_char*page.body_len))
 
         self._fobj.write(pb.contents.raw)
         self._fobj.flush()
 
     def _write_data_complete(self):
-        pageout = _ogg_stream_pageout(self._ctx, byref(self._tmp_page))
+        page = OggPage()
+        pageout = _ogg_stream_pageout(self._ctx, byref(page))
         if pageout:
-            self._write_page()
+            self._write_page(page)
 
     def _feed_data(self, data, bos, eos, granulepos):
         self._tmp_packet.packet = data
@@ -116,7 +125,9 @@ class OpusOggFile(object):
         self.packetno += 1
 
     def _write_header(self):
-        header = 'OpusHead' + \
+        page = OggPage()
+
+        header = b'OpusHead' + \
           pack('BBHIHB',
                self.version,
                self.channels,
@@ -127,23 +138,23 @@ class OpusOggFile(object):
             )
 
         self._feed_data(header, 1, 0, 0)
-        if _ogg_stream_flush(self._ctx, byref(self._tmp_page)):
-            self._write_page()
+        if _ogg_stream_flush(self._ctx, byref(page)):
+            self._write_page(page)
 
         vendor = self.tags.pop('vendor', 'opusogg.py')
 
-        tags = 'OpusTags' + pack('<I', len(vendor)) + vendor
+        tags = b'OpusTags' + pack('<I', len(vendor)) + as_bytes(vendor)
 
         user_tags = [
             pack('<I', len(x)) + x for x in [
-                '{}={}'.format(k,v) for k,v in self.tags.iteritems()
+                as_bytes('{}={}'.format(k,v)) for k,v in self.tags.items()
             ]
         ]
 
-        user_tags = pack('<I', len(user_tags)) + ''.join(user_tags)
+        user_tags = pack('<I', len(user_tags)) + b''.join(user_tags)
         self._feed_data(tags + user_tags, 0, 0, 0)
-        if _ogg_stream_flush(self._ctx, byref(self._tmp_page)):
-            self._write_page()
+        if _ogg_stream_flush(self._ctx, byref(page)):
+            self._write_page(page)
 
     def write(self, data, samples, eof=False):
         if self.closed:
@@ -158,16 +169,18 @@ class OpusOggFile(object):
         if self.closed:
             raise EOFError('File already closed')
 
-        self.write('', 0, True)
-        self.closed = True
-
         if self._ctx:
-            _ogg_stream_destroy(self._ctx)
+            page = OggPage()
+            if _ogg_stream_flush(self._ctx, byref(page)):
+                self._write_page(page)
+
+            self.closed = True
+
+            _ogg_stream_clear(self._ctx)
+
+            self._tmp_packet = None
             self._ctx = None
 
         if self._fobj:
+            self._fobj.close()
             self._fobj = None
-
-    def __del__(self):
-        if not self.closed:
-            self.close()

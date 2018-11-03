@@ -19,24 +19,23 @@ enc.inband_fec = 0
 
 pulse = PaRec()
 
-i = open('x.in.pcm', 'w+')
-ed = open('x.opus', 'w+')
-dd = open('x.out.pcm', 'w+')
+i = open('x.in.pcm', 'w+b')
+ed = open('x.opus', 'w+b')
+dd = open('x.out.pcm', 'w+b')
 
 ogg = OpusOggFile(ed, channels, sample_rate, tags={'TITLE':'example'})
 
-for idx, d in enumerate(pulse.read(frame_size)):
-    i.write(d)
-    x = enc.encode(d, frame_size)
-    ogg.write(x, frame_size)
-    y = dec.decode(x, frame_size)
-    dd.write(y)
+try:
+    for idx, d in enumerate(pulse.read(frame_size)):
+        i.write(d)
+        x = enc.encode(d, frame_size)
+        ogg.write(x, frame_size)
+        y = dec.decode(x, frame_size)
+        dd.write(y)
+except KeyboardInterrupt:
+    pass
 
-    if idx > 5000:
-        break
-
-ogg.close()
-
-i.close()
-ed.close()
-dd.close()
+finally:
+    i.close()
+    ogg.close()
+    dd.close()
