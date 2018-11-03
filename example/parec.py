@@ -100,17 +100,12 @@ class PaRec(object):
 
         error = c_int32(0)
 
-        print self.server, self.name, PA_STREAM_RECORD, self.dev, self.stream_name, \
-          byref(spec), None, None, byref(error)
-
         pa = pa_simple_new(
             self.server, self.name, PA_STREAM_RECORD, self.dev, self.stream_name,
             byref(spec), None, None, byref(error))
 
         if not pa:
             raise ValueError('Invalid something ({})'.format(error.value))
-
-        print sizeof(spec)
 
         try:
             fs = self.channels*frame_size*2
