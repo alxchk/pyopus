@@ -35,7 +35,7 @@ for idx, d in enumerate(pulse.read(frame_size)):
     if idx > 5000:
         break
 
-og.close()
+ogg.close()
 
 i.close()
 ed.close()
