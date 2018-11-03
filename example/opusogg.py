@@ -100,10 +100,7 @@ class OpusOggFile(object):
     def _write_data_complete(self):
         pageout = _ogg_stream_pageout(self._ctx, byref(self._tmp_page))
         if pageout:
-            print "WRITE PAGE!"
             self._write_page()
-        else:
-            print "NO PAGE", self.granulepos, self.packetno
 
     def _feed_data(self, data, bos, eos, granulepos):
         self._tmp_packet.packet = data
@@ -112,8 +109,6 @@ class OpusOggFile(object):
         self._tmp_packet.e_o_s = eos
         self._tmp_packet.granulepos = granulepos
         self._tmp_packet.packetno = self.packetno
-
-        print "EMIT", self.packetno, granulepos
 
         if _ogg_stream_packetin(self._ctx, byref(self._tmp_packet)) < 0:
             raise ValueError('ogg_stream_packetin internal error')
@@ -133,7 +128,6 @@ class OpusOggFile(object):
 
         self._feed_data(header, 1, 0, 0)
         if _ogg_stream_flush(self._ctx, byref(self._tmp_page)):
-            print "NO PAGE AFTER FLUSH!"
             self._write_page()
 
         vendor = self.tags.pop('vendor', 'opusogg.py')
@@ -149,7 +143,6 @@ class OpusOggFile(object):
         user_tags = pack('<I', len(user_tags)) + ''.join(user_tags)
         self._feed_data(tags + user_tags, 0, 0, 0)
         if _ogg_stream_flush(self._ctx, byref(self._tmp_page)):
-            print "NO PAGE AFTER FLUSH!"
             self._write_page()
 
     def write(self, data, samples, eof=False):
