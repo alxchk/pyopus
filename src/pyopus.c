@@ -6,12 +6,11 @@
 #endif
 
 #ifndef MAX_FRAME_SIZE
-#define MAX_FRAME_SIZE 1200
+#define MAX_FRAME_SIZE (6*960)
 #endif
 
 #ifndef MAX_PACKET_SIZE
-#define MAX_PACKET_SIZE								\
-	MAX_FRAME_SIZE * MAX_CHANNELS * sizeof(opus_int16)
+#define MAX_PACKET_SIZE	(3*1276)
 #endif
 
 static char docstring[] = "Embedded opus decoder/encoder";

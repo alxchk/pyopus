@@ -13,7 +13,7 @@ i = open('x.in.pcm', 'w+')
 ed = open('x.opus', 'w+')
 dd = open('x.out.pcm', 'w+')
 
-frame_size = 240
+frame_size = 3*960
 
 for idx, d in enumerate(pulse.read(frame_size)):
     i.write(d)
