@@ -153,7 +153,7 @@ opus_DecoderObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 static int
 opus_EncoderObject_set(PyObject *self, PyObject *val, void *data) {
-    popus_EncoderObject selfobj = (popus_EncoderObject) selfobj;
+    popus_EncoderObject selfobj = (popus_EncoderObject) self;
 	int value;
 	int ret;
 
@@ -660,8 +660,60 @@ opus_DecoderObjectType = {
     opus_DecoderObject_new,         /* tp_new */
 };
 
+PyObject *Py_opus_packet_get_nb_samples(PyObject *self, PyObject *args)
+{
+	unsigned char *inbuf = NULL;
+	size_t inbuf_size = 0;
+    unsigned int fs = 0;
+    int ns = 0;
+
+    if (! PyArg_ParseTuple(args, "s#I", &inbuf, &inbuf_size, &fs)) {
+		return NULL;
+	}
+
+    ns = opus_packet_get_nb_samples(inbuf, inbuf_size, fs);
+    if (ns < 0) {
+		PyErr_SetString(opus_ErrorObject, opus_strerror(ns));
+		return NULL;
+    }
+
+    return PyLong_FromLong(ns);
+}
+
+PyObject *Py_opus_packet_get_nb_frames(PyObject *self, PyObject *args)
+{
+	unsigned char *inbuf = NULL;
+	size_t inbuf_size = 0;
+    int nf = 0;
+
+    if (! PyArg_ParseTuple(args, "s#", &inbuf, &inbuf_size)) {
+		return NULL;
+	}
+
+    nf = opus_packet_get_nb_frames(inbuf, inbuf_size);
+    if (nf < 0) {
+		PyErr_SetString(opus_ErrorObject, opus_strerror(nf));
+		return NULL;
+    }
+
+    return PyLong_FromLong(nf);
+}
+
+
 static PyMethodDef
 opus_methods[] = {
+	{
+		"opus_packet_get_nb_samples", Py_opus_packet_get_nb_samples, METH_VARARGS,
+		"Gets the number of samples of an Opus packet.\n"
+		"arg1: Opus packet\n"
+		"arg2: Sampling rate in Hz (Fs). This must be a multiple of 400, or "
+		"inaccurate results will be returned."
+	},
+	{
+		"opus_packet_get_nb_frames", Py_opus_packet_get_nb_frames, METH_VARARGS,
+		"Gets the number of samples of an Opus packet.\n"
+		"arg1: Opus packet\n"
+	},
 	{NULL}
 };
 
