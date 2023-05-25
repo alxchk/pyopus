@@ -28,6 +28,7 @@ ogg = OpusOggFile(ed, channels, sample_rate, tags={'TITLE':'example'})
 try:
     for idx, d in enumerate(pulse.read(frame_size)):
         i.write(d)
+        print(type(d), type(frame_size))
         x = enc.encode(d, frame_size)
         ogg.write(x, frame_size)
         y = dec.decode(x, frame_size)

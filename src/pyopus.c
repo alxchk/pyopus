@@ -13,6 +13,12 @@
 #define MAX_PACKET_SIZE (3*1276)
 #endif
 
+#if PY_MAJOR_VERSION >= 3
+#define BFMT "y"
+#else
+#define BFMT "s"
+#endif
+
 static char docstring[] = "Embedded opus decoder/encoder";
 static PyObject *opus_ErrorObject = NULL;
 
@@ -298,7 +304,7 @@ opus_DecoderObject_get(PyObject *self, void *data) {
 static PyObject*
 opus_EncoderObject_encode(PyObject *self, PyObject *args)
 {
-    unsigned char *inbuf = NULL;
+    Py_buffer inbuffer;
     size_t inbuf_size = 0;
     int frame_size = 0;
     int ret = -1;
@@ -308,8 +314,8 @@ opus_EncoderObject_encode(PyObject *self, PyObject *args)
     size_t required_size = 0;
     popus_EncoderObject encobj = (popus_EncoderObject) self;
 
-    if (!PyArg_ParseTuple(args, "s#i", &inbuf, &inbuf_size, &frame_size)) {
-        PyErr_SetString(opus_ErrorObject, "Invalid encode arguments");
+    if (!PyArg_ParseTuple(args, BFMT "*i", &inbuffer, &frame_size)) {
+        //PyErr_SetString(opus_ErrorObject, "Invalid encode arguments");
         return NULL;
     }
 
@@ -319,15 +325,16 @@ opus_EncoderObject_encode(PyObject *self, PyObject *args)
     }
 
     required_size = frame_size*encobj->channels*sizeof(opus_int16);
-    if (inbuf_size < required_size) {
+    if (inbuffer.len < required_size) {
         PyErr_Format(opus_ErrorObject, "Invalid size: %lu < %lu",
-            inbuf_size, required_size);
+            inbuffer.len, required_size);
         return NULL;
     }
 
     /* Convert from little-endian ordering. */
     for (i=0; i<encobj->channels*frame_size; i++)
-        in[i] = inbuf[2*i+1]<<8|inbuf[2*i];
+        in[i] = ((unsigned char *)inbuffer.buf)[2*i+1]<<8
+                | ((unsigned char *)inbuffer.buf)[2*i];
 
     ret = opus_encode(encobj->enc, in,
         frame_size, encoded_bytes, sizeof(encoded_bytes));
@@ -343,8 +350,7 @@ opus_EncoderObject_encode(PyObject *self, PyObject *args)
 static PyObject*
 opus_DecoderObject_decode(PyObject *self, PyObject *args)
 {
-    unsigned char *inbuf = NULL;
-    size_t inbuf_size = 0;
+    Py_buffer inbuffer;
     int frame_size = 0;
     int ret = -1;
     int i = 0;
@@ -353,7 +359,7 @@ opus_DecoderObject_decode(PyObject *self, PyObject *args)
 
     popus_DecoderObject decobj = (popus_DecoderObject) self;
 
-    if (!PyArg_ParseTuple(args, "s#i", &inbuf, &inbuf_size, &frame_size)) {
+    if (!PyArg_ParseTuple(args, BFMT "*i", &inbuffer, &frame_size)) {
         return NULL;
     }
 
@@ -362,7 +368,7 @@ opus_DecoderObject_decode(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    ret = opus_decode(decobj->dec, inbuf, inbuf_size, out, frame_size, 0);
+    ret = opus_decode(decobj->dec, inbuffer.buf, inbuffer.len, out, frame_size, 0);
 
     if (ret < 0) {
         PyErr_SetString(opus_ErrorObject, opus_strerror(ret));
@@ -662,16 +668,15 @@ opus_DecoderObjectType = {
 
 PyObject *Py_opus_packet_get_nb_samples(PyObject *self, PyObject *args)
 {
-    unsigned char *inbuf = NULL;
-    size_t inbuf_size = 0;
+    Py_buffer inbuffer;
     unsigned int fs = 0;
     int ns = 0;
 
-    if (! PyArg_ParseTuple(args, "s#I", &inbuf, &inbuf_size, &fs)) {
+    if (! PyArg_ParseTuple(args, BFMT "*I", &inbuffer, &fs)) {
         return NULL;
     }
 
-    ns = opus_packet_get_nb_samples(inbuf, inbuf_size, fs);
+    ns = opus_packet_get_nb_samples(inbuffer.buf, inbuffer.len, fs);
     if (ns < 0) {
         PyErr_SetString(opus_ErrorObject, opus_strerror(ns));
         return NULL;
@@ -682,15 +687,14 @@ PyObject *Py_opus_packet_get_nb_samples(PyObject *self, PyObject *args)
 
 PyObject *Py_opus_packet_get_nb_frames(PyObject *self, PyObject *args)
 {
-    unsigned char *inbuf = NULL;
-    size_t inbuf_size = 0;
+    Py_buffer inbuffer;
     int nf = 0;
 
-    if (! PyArg_ParseTuple(args, "s#", &inbuf, &inbuf_size)) {
+    if (! PyArg_ParseTuple(args, BFMT "*", &inbuffer)) {
         return NULL;
     }
 
-    nf = opus_packet_get_nb_frames(inbuf, inbuf_size);
+    nf = opus_packet_get_nb_frames(inbuffer.buf, inbuffer.len);
     if (nf < 0) {
         PyErr_SetString(opus_ErrorObject, opus_strerror(nf));
         return NULL;

@@ -3,7 +3,13 @@ TARGET         ?= opus.so
 CFLAGS         ?= -O2 -g -pipe -fPIC
 LDFLAGS        ?= -Wl,-no-undefined
 
-PYTHON_PKG     ?= python-2.7
+PYTHON_VER     ?= $(shell python -V | tr 'P ' 'p-' | cut -f -2 -d .)
+ifneq (,$(findstring python-3, $(PYTHON_VER)))
+PYTHON_PKG     ?= $(PYTHON_VER)-embed
+else
+PYTHON_PKG     ?= $(PYTHON_VER)
+endif
+
 OPUS_PKG       ?= $(shell pkg-config opus && echo opus)
 
 CFLAGS_PYTHON  ?= $(shell pkg-config --cflags $(PYTHON_PKG))
